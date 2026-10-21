@@ -94,7 +94,9 @@ namespace Cachu
         public int CeilingContactHeight { get { return Ceiling.H - CeilingTopInset; } }
 
         /// <summary>서 있는 그림의 높이(픽셀, 배율 1). 다른 포즈도 같은 비율로 줄여 몸 크기가 비슷해 보이게 한다.</summary>
-        private const float StandPx = 62f;
+        private const float StandPx = 62f * SizeBoost;
+        /// <summary>캐릭터 그림 크기 배율(말풍선·글자 크기는 그대로). 1.3 = 원래보다 30% 크게.</summary>
+        internal const float SizeBoost = 1.3f;
 
         private CharacterArt(int id)
         {
