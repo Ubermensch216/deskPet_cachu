@@ -20,7 +20,7 @@ public static class StarterExtract
         if (green)
         {
             if (x < 345) return 1;
-            if (x >= 380 && x <= 525 && y < 172) return 3;   // Charmander teal eyes
+            if (x >= 380 && x <= 500 && y < 172) return 3;   // Charmander teal eyes
             if (x >= 520) return 4;
             return 0;
         }
@@ -110,27 +110,3 @@ public static class StarterExtract
     }
 }
 
-public static class Reconstruct
-{
-    public static void Run(byte[] px, int st, int W, int H, int[] lab, bool[] bg, string outDir)
-    {
-        string[] names = { "", "bulbasaur", "", "charmander", "squirtle" };
-        foreach (int c in new[] { 1, 3, 4 })
-        {
-            int pad = 60;   // extra canvas room for parts that must be drawn outside the group picture
-            Bitmap o = new Bitmap(W + pad * 2, H + pad * 2, PixelFormat.Format32bppArgb);
-            for (int y = 0; y < H; y++) for (int x = 0; x < W; x++)
-            {
-                int i = y * W + x; if (lab[i] != c) continue; int p = y * st + x * 4;
-                bool edge = false;
-                if (x > 0 && bg[i - 1]) edge = true; if (x < W - 1 && bg[i + 1]) edge = true; if (y > 0 && bg[i - W]) edge = true; if (y < H - 1 && bg[i + W]) edge = true;
-                int a = edge ? 215 : 255;
-                o.SetPixel(x + pad, y + pad, Color.FromArgb(a, px[p + 2], px[p + 1], px[p]));
-            }
-            using (Graphics g = Graphics.FromImage(o)) { g.SmoothingMode = SmoothingMode.AntiAlias; g.TranslateTransform(pad, pad); Fill(c, g, o, pad); }
-            o.Save(System.IO.Path.Combine(outDir, "..\\obj\\raw_" + names[c] + ".png"), ImageFormat.Png);
-        }
-    }
-
-    static void Fill(int c, Graphics g, Bitmap bmp, int pad) { }
-}
