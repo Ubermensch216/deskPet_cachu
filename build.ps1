@@ -26,6 +26,8 @@ $rsp.Add('/out:"' + $Out + '"'); $rsp.Add('/win32icon:"' + $icon + '"'); $rsp.Ad
 foreach ($r in $refs) { $rsp.Add('/r:"' + "$fw\$r.dll" + '"') }
 # ref\pose*.png (배경을 지운 포즈 그림; tools\extract-poses.ps1 이 source_sheet.png 에서 만든다)
 foreach ($n in 1,2,3,4,6) { $rsp.Add('/resource:"' + "$root\ref\pose$n.png" + '",' + "pose$n.png") }
+# 이상해씨·파이리·꼬부기 (tools\extract-starters.ps1 이 단체 그림에서 만든 그림)
+foreach ($n in 'bulbasaur','charmander','squirtle','squirtle_shell') { $rsp.Add('/resource:"' + "$root\ref\$n.png" + '",' + "$n.png") }
 Get-ChildItem "$root\src\*.cs" | ForEach-Object { $rsp.Add('"' + $_.FullName + '"') }
 $rspPath = "$root\obj\build.rsp"
 [IO.File]::WriteAllLines($rspPath, $rsp, (New-Object Text.UTF8Encoding($true)))

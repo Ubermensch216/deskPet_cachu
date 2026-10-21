@@ -87,8 +87,8 @@ namespace Cachu
                 K("슬라이딩", (p, w) => p.Demonstrate(w, "slide")),
                 K("어질어질", (p, w) => p.Demonstrate(w, "dizzy")),
                 K("우산낙하", (p, w) => p.Demonstrate(w, "fall")),
-                K("번개-모으기", (p, w) => { p.Y = 720; p.Demonstrate(w, "thunder"); for (int k = 0; k < 20; k++) { w.Now += .03; p.Update(w, .03, null, 0); } }),
-                K("번개-방출", (p, w) => { p.Y = 720; p.Demonstrate(w, "thunder"); for (int k = 0; k < 50; k++) { w.Now += .03; p.Update(w, .03, null, 0); } }),
+                K("특기-모으기", (p, w) => { p.Y = 720; p.Demonstrate(w, "skill"); for (int k = 0; k < 20; k++) { w.Now += .03; p.Update(w, .03, null, 0); } }),
+                K("특기-방출", (p, w) => { p.Y = 720; p.Demonstrate(w, "skill"); for (int k = 0; k < 50; k++) { w.Now += .03; p.Update(w, .03, null, 0); } }),
                 K("벽타기", (p, w) => p.Demonstrate(w, "wall")),
                 K("천장", (p, w) => p.Demonstrate(w, "ceiling")),
                 K("먹는중", (p, w) => { FriendData.Current.Satiety = 40; p.Feed(w); }),
@@ -133,7 +133,7 @@ namespace Cachu
                     Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("벽 내려오기", (p, w) => p.Demonstrate(w, "walldown"), 0.55, 0),
                     Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("천장", (p, w) => p.Demonstrate(w, "ceiling"), 0.55, 0),
                     Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("낙하", (p, w) => p.Demonstrate(w, "fall"), 2.6, 0),
-                    Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("번개 방출", (p, w) => { p.Y = 720; p.Demonstrate(w, "thunder"); }, 2.7, 0),
+                    Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("특기 방출", (p, w) => { p.Y = 720; p.Demonstrate(w, "skill"); }, 2.7, 0),
                     Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("점프", (p, w) => { p.Y = 720; p.Demonstrate(w, "hop"); }, 0.7, 0),
                     Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("기지개", (p, w) => { p.Y = 720; p.Demonstrate(w, "stretch"); }, 4.2, 0),
                     Tuple.Create<string, Action<Pet, FakeWorld>, double, double>("멍때리기", (p, w) => { p.Y = 720; p.Demonstrate(w, "daydream"); }, 3.6, 0),
@@ -314,9 +314,9 @@ namespace Cachu
                 check(seen.Contains(PetState.Thrown) && pet.State != PetState.Thrown && pet.Y <= w.Areas[0].Bottom + .1, "던진 뒤 헬리콥터로 착지");
                 pet.Demonstrate(w, "dizzy"); check(pet.State == PetState.Dizzy && FriendData.Current.Discoveries.Contains("dizzy"), "어질어질"); run(5);
                 for (int i = 0; i < 60 && !(pet.State == PetState.Walk && pet.Y >= w.Areas[0].Bottom - 1); i++) run(1);   // 바닥에 내려올 때까지
-                pet.Demonstrate(w, "thunder"); check(pet.State == PetState.Thunder && FriendData.Current.Discoveries.Contains("thunder"), "번개 방출"); run(1); check(pet.State == PetState.Thunder, "번개: 방출 중"); run(2.5); check(pet.State == PetState.Walk, "번개: 끝나면 다시 걷기");
+                pet.Demonstrate(w, "skill"); check(pet.State == PetState.Skill && FriendData.Current.Discoveries.Contains("skill"), "특기 발동"); run(1); check(pet.State == PetState.Skill, "특기: 방출 중"); run(2.5); check(pet.State == PetState.Walk, "특기: 끝나면 다시 걷기");
                 for (int i = 0; i < 4; i++) { pet.Poke(w); run(.3); }
-                check(pet.State == PetState.Thunder, "연달아 4번 누르면 번개"); run(3);
+                check(pet.State == PetState.Skill, "연달아 4번 누르면 특기 발동"); run(3);
                 pet.SetState(PetState.Pause, w); pet.FallAsleep(w); check(pet.State == PetState.Sleep, "낮잠"); pet.WakeUp(w); check(pet.State == PetState.Waking, "깨어남");
                 for (int i = 0; i < 3; i++) { pet.BeginDrag(w, pet.X, pet.Y - 20); for (int k = 0; k < 6; k++) { w.Now += .016; pet.DragTo(w, pet.X + pet.DragPx + 30, pet.Y + pet.DragPy - 4); } pet.EndDrag(w); run(.6); }
                 check(seen.Contains(PetState.PilotRise) && FriendData.Current.Discoveries.Contains("pilot"), "비밀 조종사: 10초 안 3번 던지기");

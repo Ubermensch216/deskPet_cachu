@@ -121,7 +121,7 @@ namespace Cachu
 
         internal void ClickFeature(IWorld w)
         {
-            if (State == PetState.Drag || State == PetState.Falling || State == PetState.Thrown || State == PetState.PilotRise || State == PetState.Thunder) return;
+            if (State == PetState.Drag || State == PetState.Falling || State == PetState.Thrown || State == PetState.PilotRise || State == PetState.Skill) return;
             mouseGrace = w.Now + .7; hoverSince = -1;
             if (State == PetState.Wall || State == PetState.Ceiling || State == PetState.WindowClimb || State == PetState.Climb)
             {
@@ -192,7 +192,7 @@ namespace Cachu
             }
             if (State == PetState.Falling || State == PetState.Drag || State == PetState.Thrown) return;
             if (kind == "dizzy") { ClearAttachments(); SnapToFloor(w); StartDizzy(w); return; }
-            if (kind == "thunder") { ClearAttachments(); SnapToFloor(w); StartThunder(w); return; }
+            if (kind == "skill") { ClearAttachments(); SnapToFloor(w); StartSkill(w); return; }
             AfterReaction = PetState.Walk;
             if (kind == "cry") { extraDuration = 3; SetState(PetState.TouchCry, w); }
             if (kind == "sit") BeginRestPose(w, RestPose.Sit, PlayOptions.Current.ShortRest ? 8 : 25);
@@ -252,7 +252,7 @@ namespace Cachu
                 {
                     extraDuration = opts.ShortRest ? (focus ? 4 : 6 + w.Rng.NextDouble() * 5) : 20 + w.Rng.NextDouble() * 10;
                     if (!focus && FriendData.Current.Hungry) { extraDuration = 2.4 + w.Rng.NextDouble(); SetState(PetState.IdleCry, w); }
-                    else if (!focus && w.Rng.NextDouble() < .12) StartThunder(w);   // 가끔 혼자 찌릿
+                    else if (!focus && w.Rng.NextDouble() < .12) StartSkill(w);   // 가끔 혼자 찌릿
                     else BeginRestPose(w, ChooseRestPose(w), extraDuration);
                     DelayIdle(w);
                 }
@@ -295,9 +295,9 @@ namespace Cachu
                 case PetState.Eating:
                     if (StateT >= extraDuration) SetState(AfterReaction, w);
                     break;
-                case PetState.Thunder:
+                case PetState.Skill:
                     SnapToFloor(w);
-                    if (State == PetState.Thunder && StateT >= extraDuration) { SetState(PetState.Walk, w); DelayIdle(w); }
+                    if (State == PetState.Skill && StateT >= extraDuration) { SetState(PetState.Walk, w); DelayIdle(w); }
                     break;
                 case PetState.Sliding:
                     if (StateT >= extraDuration) { SetState(PetState.Walk, w); break; }
@@ -518,7 +518,7 @@ namespace Cachu
             StateT += dt; animT += dt;
             if (Bubble != null && world.Now > BubbleUntil) Bubble = null;
             if (State == PetState.Squish && StateT >= squishDur
-                || (State == PetState.TouchCry || State == PetState.Hop || State == PetState.Eating || State == PetState.IdleCry || State == PetState.Resting || State == PetState.Thunder) && StateT >= extraDuration
+                || (State == PetState.TouchCry || State == PetState.Hop || State == PetState.Eating || State == PetState.IdleCry || State == PetState.Resting || State == PetState.Skill) && StateT >= extraDuration
                 || State == PetState.Waking && StateT > stateDur
                 || State == PetState.Cheer && Bubble == null && world.Now > cheerHopUntil)
                 SetState(PetState.Pause, world);

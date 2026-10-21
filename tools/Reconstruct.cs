@@ -23,6 +23,14 @@ public static class Reconstruct
                 int i = y * W + x; if (lab[i] != c) continue; int p = y * st + x * 4; int r = px[p + 2], g = px[p + 1], b = px[p];
                 if (c == 3 && x >= 598 && y < 276 && (x >= 640 || y < 268)) continue;   // tail flame: redrawn by the program
                 if (c == 1 && x >= 183 && y < 140 && g > r && b < r - 5) continue;      // bulb fragments: redrawn
+                bool white = r > 236 && g > 236 && b > 236, dark = (r * 30 + g * 59 + b * 11) / 100 < 100;
+                if (c == 1 && dark && x > 185 && Near(lab, W, H, x, y, 2, 3)) continue;                 // other friend's outline on the cut edge
+                if (c == 3 && white && (y >= 205 || x > 500 || (x < 404 && y > 142) || (x < 422 && y > 192))) continue;
+                if (c == 3 && dark && x > 500 && y < 190) continue;                                      // neighbour's outline                                  // gaps between friends
+                if (c == 3 && g > r + 10 && x > 502) continue;                                           // blue arm pixels of the neighbour
+                if (c == 4 && white && y > 135) continue;
+                if (c == 4 && r > 190 && b < 105) continue;                                              // flame edge pixels
+                if (c == 4 && y >= 205 && x < 665 && Near(lab, W, H, x, y, 3, 6)) continue;              // belly plate edge next to Charmander: redrawn
                 keep[i] = true;
             }
             KeepBig(keep, W, H);
@@ -43,6 +51,47 @@ public static class Reconstruct
             }
             canvas.Save(System.IO.Path.Combine(outDir, names[c] + ".png"), ImageFormat.Png);
             Console.WriteLine("saved " + names[c] + ".png");
+        }
+        SaveShell(System.IO.Path.Combine(outDir, "squirtle_shell.png"));
+    }
+
+    static bool Near(int[] lab, int W, int H, int x, int y, int who, int rad)
+    {
+        for (int dy = -rad; dy <= rad; dy++) for (int dx = -rad; dx <= rad; dx++)
+        { int nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue; if (lab[ny * W + nx] == who) return true; }
+        return false;
+    }
+
+    /// <summary>Squirtle pulled into its shell: plastron seen from the front, limb holes with blue stubs, head hole with two peeking eyes.</summary>
+    static void SaveShell(string file)
+    {
+        Color brown = C(150, 92, 46), cream = C(246, 232, 125), black = C(22, 18, 18), blue = C(160, 216, 208), hole = C(52, 36, 34);
+        using (Bitmap bmp = new Bitmap(230, 200, PixelFormat.Format32bppArgb))
+        using (Graphics g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            float[] rimPts = { 115, 8, 190, 36, 214, 104, 192, 172, 115, 194, 38, 172, 16, 104, 40, 36 };
+            Curve(g, brown, .32f, rimPts);
+            using (var path = new GraphicsPath()) { path.AddClosedCurve(P(rimPts), .32f); using (var pen = new Pen(black, 4.5f)) g.DrawPath(pen, path); }
+            Line(g, C(110, 66, 30), 3f, 115, 14, 115, 30); Line(g, C(110, 66, 30), 3f, 30, 60, 44, 70); Line(g, C(110, 66, 30), 3f, 200, 60, 186, 70);
+            float[] inPts = { 115, 26, 176, 48, 196, 104, 178, 160, 115, 178, 52, 160, 34, 104, 54, 48 };
+            Curve(g, cream, .32f, inPts);
+            using (var path = new GraphicsPath()) { path.AddClosedCurve(P(inPts), .32f); using (var pen = new Pen(black, 3.6f)) g.DrawPath(pen, path); }
+            Poly(g, cream, 82, 104, 98, 78, 132, 78, 148, 104, 132, 130, 98, 130);
+            Line(g, black, 3.2f, 82, 104, 98, 78, 132, 78, 148, 104, 132, 130, 98, 130, 82, 104);
+            Line(g, black, 3.2f, 98, 78, 80, 50); Line(g, black, 3.2f, 132, 78, 152, 50); Line(g, black, 3.2f, 148, 104, 190, 104);
+            Line(g, black, 3.2f, 132, 130, 152, 160); Line(g, black, 3.2f, 98, 130, 78, 160); Line(g, black, 3.2f, 82, 104, 40, 104);
+            // limb holes with blue stubs
+            foreach (float[] h in new float[][] { new float[] { 52, 62, -6, -4 }, new float[] { 178, 62, 6, -4 }, new float[] { 52, 148, -6, 4 }, new float[] { 178, 148, 6, 4 } })
+            {
+                Oval(g, hole, h[0] - 20, h[1] - 14, 40, 28); OvalLine(g, black, 3f, h[0] - 20, h[1] - 14, 40, 28);
+                Oval(g, blue, h[0] - 12 + h[2], h[1] - 7 + h[3], 24, 16); OvalLine(g, black, 2.4f, h[0] - 12 + h[2], h[1] - 7 + h[3], 24, 16);
+            }
+            // head hole with peeking eyes
+            Oval(g, hole, 84, 12, 62, 42); OvalLine(g, black, 3.4f, 84, 12, 62, 42);
+            Oval(g, blue, 92, 22, 46, 28); OvalLine(g, black, 2.6f, 92, 22, 46, 28);
+            foreach (float ex in new float[] { 104, 126 }) { Oval(g, Color.White, ex - 6, 26, 12, 15); Oval(g, C(170, 30, 30), ex - 3.5f, 30, 8, 10); Oval(g, black, ex - 2, 33, 4, 5); }
+            bmp.Save(file, ImageFormat.Png);
         }
     }
 
@@ -75,32 +124,40 @@ public static class Reconstruct
         if (c == 1)
         {
             Color teal = C(128, 200, 168), shade = C(100, 150, 140), line = C(70, 120, 110), spot = C(30, 115, 115);
-            Oval(g, shade, 292, 290, 56, 62); OvalLine(g, line, 2f, 292, 290, 56, 62);
-            Poly(g, teal, 196, 128, 230, 134, 280, 138, 330, 140, 352, 165, 358, 210, 350, 260, 344, 305, 325, 340, 285, 354, 240, 354, 205, 352, 190, 300, 205, 240, 210, 170, 200, 140);
-            Poly(g, shade, 200, 285, 250, 290, 300, 292, 346, 285, 344, 305, 325, 340, 285, 354, 240, 354, 205, 352, 190, 300);
-            Line(g, line, 2.2f, 230, 134, 280, 138, 330, 140, 352, 165, 358, 210, 350, 260, 344, 305, 325, 340, 285, 354, 240, 354);
-            Oval(g, spot, 246, 160, 62, 27); Oval(g, spot, 300, 205, 42, 23); Oval(g, spot, 282, 252, 30, 17);
-            Oval(g, teal, 236, 304, 58, 56); OvalLine(g, line, 2f, 236, 304, 58, 56); Oval(g, spot, 246, 314, 24, 13);
-            foreach (float cx in new float[] { 244, 260, 276 }) Poly(g, C(215, 235, 230), cx - 5, 355, cx + 5, 355, cx, 366);
-            float[] bulb = { 196, 134, 190, 116, 204, 98, 234, 85, 274, 80, 314, 85, 344, 99, 360, 120, 364, 140, 300, 146, 230, 146 };
-            Poly(g, C(70, 125, 60), 266, 86, 274, 50, 284, 86);
-            Curve(g, C(155, 205, 110), .35f, bulb);
+            Oval(g, shade, 296, 292, 52, 60); OvalLine(g, line, 2f, 296, 292, 52, 60);
+            float[] body = { 196, 130, 250, 128, 310, 132, 346, 150, 359, 190, 357, 240, 347, 290, 330, 326, 300, 346, 250, 355, 212, 352, 190, 300, 205, 240, 210, 170 };
+            Curve(g, teal, .4f, body);
             using (var clip = new GraphicsPath())
             {
-                clip.AddClosedCurve(P(bulb), .35f); var old = g.Clip; g.SetClip(clip);
-                Poly(g, C(112, 165, 84), 276, 70, 380, 70, 380, 160, 276, 160); Poly(g, C(190, 230, 150), 190, 84, 240, 84, 228, 150, 190, 150); g.Clip = old;
+                clip.AddClosedCurve(P(body), .4f); var old = g.Clip; g.SetClip(clip);
+                Poly(g, shade, 180, 284, 380, 276, 380, 380, 180, 380); g.Clip = old;
             }
-            using (var path = new GraphicsPath()) { path.AddClosedCurve(P(bulb), .35f); using (var pen = new Pen(C(60, 100, 55), 2.6f)) g.DrawPath(pen, path); }
-            Line(g, C(70, 115, 60), 2.2f, 232, 144, 240, 92); Line(g, C(70, 115, 60), 2.2f, 274, 146, 275, 84); Line(g, C(70, 115, 60), 2.2f, 316, 146, 308, 92);
-            Line(g, C(60, 100, 55), 2.2f, 266, 86, 274, 50, 284, 86);
+            using (var path = new GraphicsPath()) { path.AddClosedCurve(P(body), .4f); using (var pen = new Pen(line, 2.2f)) g.DrawPath(pen, path); }
+            Oval(g, spot, 250, 160, 62, 27); Oval(g, spot, 303, 205, 42, 23); Oval(g, spot, 284, 252, 30, 17);
+            Oval(g, teal, 240, 300, 52, 62); OvalLine(g, line, 2f, 240, 300, 52, 62); Oval(g, spot, 250, 312, 22, 13);
+            foreach (float cx in new float[] { 248, 264, 280 }) Poly(g, C(215, 235, 230), cx - 5, 358, cx + 5, 358, cx, 368);
+            // bulb: a plump two-tone seed with a sprout tip
+            float[] bulb = { 206, 120, 222, 90, 254, 70, 292, 64, 328, 76, 352, 100, 358, 128, 340, 152, 300, 162, 252, 160, 216, 144 };
+            Poly(g, C(70, 125, 60), 278, 72, 288, 36, 300, 72);
+            Curve(g, C(150, 204, 108), .45f, bulb);
+            using (var clip = new GraphicsPath())
+            {
+                clip.AddClosedCurve(P(bulb), .45f); var old = g.Clip; g.SetClip(clip);
+                Poly(g, C(104, 160, 80), 292, 50, 380, 50, 380, 180, 292, 180);
+                Poly(g, C(190, 232, 150), 200, 60, 238, 70, 232, 170, 200, 170);
+                g.Clip = old;
+            }
+            using (var path = new GraphicsPath()) { path.AddClosedCurve(P(bulb), .45f); using (var pen = new Pen(C(58, 98, 52), 2.6f)) g.DrawPath(pen, path); }
+            using (var pen = new Pen(C(66, 110, 58), 2.2f)) { g.DrawCurve(pen, P(236, 158, 244, 112, 262, 78)); g.DrawCurve(pen, P(290, 162, 292, 112, 292, 68)); g.DrawCurve(pen, P(336, 150, 328, 112, 316, 76)); }
+            Line(g, C(58, 98, 52), 2.2f, 278, 72, 288, 36, 300, 72);
         }
         else if (c == 4)
         {
             Color blue = C(160, 216, 208), cream = C(246, 232, 125), rim = C(212, 198, 95), black = C(18, 18, 18);
             Poly(g, blue, 548, 300, 585, 296, 596, 330, 598, 372, 560, 378, 546, 340);
             Line(g, black, 3.2f, 585, 298, 596, 330, 598, 372);
-            Oval(g, blue, 532, 360, 74, 26); OvalLine(g, black, 3f, 532, 360, 74, 26);
-            foreach (float cx in new float[] { 540, 554, 568 }) { Oval(g, C(205, 232, 230), cx - 5, 376, 10, 9); OvalLine(g, black, 2f, cx - 5, 376, 10, 9); }
+            Oval(g, blue, 540, 362, 62, 22); OvalLine(g, black, 3f, 540, 362, 62, 22);
+            foreach (float cx in new float[] { 548, 561, 574 }) { Oval(g, C(205, 232, 230), cx - 4.5f, 376, 9, 8); OvalLine(g, black, 2f, cx - 4.5f, 376, 9, 8); }
             Poly(g, cream, 522, 205, 556, 199, 600, 200, 650, 200, 690, 203, 694, 225, 693, 262, 690, 285, 662, 300, 645, 330, 625, 340, 580, 342, 552, 334, 536, 306, 524, 262, 520, 225);
             Poly(g, rim, 552, 330, 580, 341, 625, 339, 648, 330, 642, 320, 600, 326, 560, 320);
             Line(g, black, 3.4f, 524, 205, 526, 260, 540, 306, 560, 333); Line(g, black, 3.4f, 560, 333, 585, 341, 625, 340, 650, 330);

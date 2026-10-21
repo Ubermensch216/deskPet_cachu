@@ -46,11 +46,11 @@ namespace Cachu
         { danceStarted = togetherStart; extraDuration = 6; mouseGrace = w.Now + 8; orbitSeen = false; orbitTotal = 0; SetState(PetState.SecretDance, w); }
 
         /// <summary>찌릿! 볼에 전기를 모았다가 사방으로 번개를 방출한다 (모으기 0.75초 → 방출 1.4초 → 잦아듦).</summary>
-        internal void StartThunder(IWorld w)
+        internal void StartSkill(IWorld w)
         {
             extraDuration = 2.7; mouseGrace = w.Now + 3.5; hoverSince = -1; AfterReaction = PetState.Walk;
-            SetState(PetState.Thunder, w);
-            if (PlayOptions.Current.Secrets) FriendData.Current.Discover("thunder");
+            SetState(PetState.Skill, w);
+            if (PlayOptions.Current.Secrets) FriendData.Current.Discover("skill");
         }
 
         private readonly List<double> clickTimes = new List<double>();
@@ -60,7 +60,7 @@ namespace Cachu
             clickTimes.Add(w.Now);
             clickTimes.RemoveAll(t => w.Now - t > 2);
             if (clickTimes.Count < 4 || !PlayOptions.Current.Secrets) return false;
-            clickTimes.Clear(); StartThunder(w); return true;
+            clickTimes.Clear(); StartSkill(w); return true;
         }
 
         internal void StartDizzy(IWorld w)

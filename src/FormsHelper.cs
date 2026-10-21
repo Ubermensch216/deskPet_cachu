@@ -55,7 +55,7 @@ namespace Cachu
             lifeDetails.Text = "포만감 " + (int)Math.Floor(d.Satiety) + " / 100\n다음 꽃다발: 친밀도 " + ((d.Affinity / 100 + 1) * 100).ToString("N0")
                 + "\n" + (d.CanSnack ? "지금 간식을 줄 수 있어." : "지금은 배가 꽉 찼어");
             snackButton.Enabled = d.CanSnack;
-            var names = new[] { new[] { "dance", "몰래 하는 군무" }, new[] { "dizzy", "어질어질" }, new[] { "pilot", "비밀 조종사" }, new[] { "thunder", "번개 방출" } };
+            var names = new[] { new[] { "dance", "몰래 하는 군무" }, new[] { "dizzy", "어질어질" }, new[] { "pilot", "비밀 조종사" }, new[] { "skill", "특기 발동(번개·불꽃·물대포·덩굴채찍)" } };
             discoverySummary.Text = "발견한 비밀 " + names.Count(p => d.Discoveries.Contains(p[0])) + " / " + names.Length + "\n" + string.Join("  ·  ", names.Where(p => d.Discoveries.Contains(p[0])).Select(p => p[1]).ToArray());
         }
     }

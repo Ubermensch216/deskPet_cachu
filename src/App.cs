@@ -230,6 +230,10 @@ namespace Cachu
             return item;
         }
 
+        /// <summary>동작 바로 보기 메뉴에 쓸 특기 이름(캐릭터마다 다르다).</summary>
+        private string SkillMenuName(Pet pet)
+        { Pet p = pet ?? windows.Select(a => a.Pet).FirstOrDefault(); return p != null ? p.Art.Info.SkillName : "특기 발동"; }
+
         private void BuildTray()
         {
             var menu = new ContextMenuStrip();
@@ -277,7 +281,7 @@ namespace Cachu
             { Pet p = pet ?? windows.Select(a => a.Pet).FirstOrDefault(); if (p != null) p.Feed(this); }));
             var demo = new ToolStripMenuItem("동작 바로 보기");
             var items = new[] { new[] { "앉아서 쉬기", "sit" }, new[] { "잠자기", "sleep" }, new[] { "멍때리기", "daydream" }, new[] { "기지개", "stretch" },new[] { "클릭할 때 달달 떨며 우는 모습", "cry" }, new[] { "배고플 때 우는 모습", "weep" }, new[] { "폴짝 뛰기", "hop" },
-                new[] { "슬라이딩", "slide" }, new[] { "어질어질", "dizzy" }, new[] { "우산처럼 프로펠러 잡고 낙하", "fall" }, new[] { "번개 방출", "thunder" }, new[] { "벽 타기", "wall" }, new[] { "천장 타기", "ceiling" }, new[] { "창 타기", "window" } };
+                new[] { "슬라이딩", "slide" }, new[] { "어질어질", "dizzy" }, new[] { "우산처럼 프로펠러 잡고 낙하", "fall" }, new[] { SkillMenuName(pet), "skill" }, new[] { "벽 타기", "wall" }, new[] { "천장 타기", "ceiling" }, new[] { "창 타기", "window" } };
             foreach (var pair in items)
             { string key = pair[1]; demo.DropDownItems.Add(pair[0], null, delegate { Pet p = pet ?? windows.Select(a => a.Pet).FirstOrDefault(); if (p != null) p.Demonstrate(this, key); }); }
             demo.DropDownItems.Add("몰래 하는 군무", null, delegate { DemonstrateSecretDance(pet); });

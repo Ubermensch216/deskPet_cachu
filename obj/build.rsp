@@ -21,6 +21,10 @@
 /resource:"D:\Dev\deskPet_cachu\ref\pose3.png",pose3.png
 /resource:"D:\Dev\deskPet_cachu\ref\pose4.png",pose4.png
 /resource:"D:\Dev\deskPet_cachu\ref\pose6.png",pose6.png
+/resource:"D:\Dev\deskPet_cachu\ref\bulbasaur.png",bulbasaur.png
+/resource:"D:\Dev\deskPet_cachu\ref\charmander.png",charmander.png
+/resource:"D:\Dev\deskPet_cachu\ref\squirtle.png",squirtle.png
+/resource:"D:\Dev\deskPet_cachu\ref\squirtle_shell.png",squirtle_shell.png
 "D:\Dev\deskPet_cachu\src\App.cs"
 "D:\Dev\deskPet_cachu\src\Art.cs"
 "D:\Dev\deskPet_cachu\src\FormsHelper.cs"
@@ -29,6 +33,7 @@
 "D:\Dev\deskPet_cachu\src\Notice.cs"
 "D:\Dev\deskPet_cachu\src\Options.cs"
 "D:\Dev\deskPet_cachu\src\Pet.cs"
+"D:\Dev\deskPet_cachu\src\PetCharacters.cs"
 "D:\Dev\deskPet_cachu\src\PetFeatures.cs"
 "D:\Dev\deskPet_cachu\src\PetRender.cs"
 "D:\Dev\deskPet_cachu\src\PetSecrets.cs"

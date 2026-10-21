@@ -11,7 +11,7 @@ namespace Cachu
     [Flags]
     internal enum Decor
     {
-        None = 0, Rotor = 1, Tears = 2, Spiral = 4, Stars = 8, Flower = 16, Goggles = 32, Notes = 64, Cookie = 128, Speed = 256, Sleepy = 512, Blink = 1024, Dots = 2048, Thunder = 4096
+        None = 0, Rotor = 1, Tears = 2, Spiral = 4, Stars = 8, Flower = 16, Goggles = 32, Notes = 64, Cookie = 128, Speed = 256, Sleepy = 512, Blink = 1024, Dots = 2048, Skill = 4096, Flame = 8192, Sun = 16384, Shades = 32768, Jet = 65536
     }
 
     internal sealed partial class Pet
@@ -26,12 +26,14 @@ namespace Cachu
             public Decor Decor; public float DecorPhase;
             public string AffinityLabel; public bool AffinityOnLeft;
             public float Flash;   // 번개 순간 몸이 하얗게 번쩍이는 정도 0~1
+            public float T, Flame;   // 펫이 살아온 시간(불꽃·햇살의 일렁임) / 파이리 꼬리 불꽃 세기
 
             public string Key()
             {
-                return string.Format("{0}|{1}|{2:0.00}|{3:0.00}|{4:0.0}|{5:0}|{6:0}|{7}|{8}|{9}|{10}|{11}|{12}|{13:0}",
+                return string.Format("{0}|{1}|{2:0.00}|{3:0.00}|{4:0.0}|{5:0}|{6:0}|{7}|{8}|{9}|{10}|{11}|{12}|{13:0}|{14}|{15:0}",
                     RuntimeHelpers.GetHashCode(Sprite), Left ? 1 : 0, Sx, Sy, Angle, Px, Py, Bubble ?? "", ZPhase, (int)Decor,
-                    Decor == Decor.None ? 0 : (int)(DecorPhase * 24), AffinityLabel, AffinityOnLeft, Flash * 12);
+                    Decor == Decor.None ? 0 : (int)(DecorPhase * 24), AffinityLabel, AffinityOnLeft, Flash * 12,
+                    (Decor & (Decor.Flame | Decor.Sun | Decor.Jet)) != 0 ? (int)(T * 16) : 0, Flame * 10);
             }
         }
 
@@ -61,6 +63,7 @@ namespace Cachu
         {
             L.Sprite = Art.Sleep; Uni(ref L, 1 + .015 * Math.Sin(t * 1.7));
             L.ZPhase = (int)(t * 20) % 100000; L.ZTime = (float)t;
+            if (Art.Kind != CharKind.Pikachu) L.Decor |= Decor.Sleepy;   // 카츄 말고는 같은 그림의 눈 감은 모습
         }
 
         public Look GetLook(double now)
@@ -83,7 +86,13 @@ namespace Cachu
                 {
                     // 눌림도 비율은 그대로: 균일하게 살짝 줄었다 돌아온다.
                     double k = Math.Sin(Math.PI * Math.Min(1, StateT / squishDur));
-                    if (squishAmp >= .2) { L.Sprite = Art.Angry; L.Left = false; L.Angle = (float)(Math.Sin(StateT * 46) * 2.2 * k); }   // 콕 눌리면 발끈
+                    if (squishAmp >= .2)   // 콕 눌렸을 때: 카츄는 발끈, 꼬부기는 등딱지에 쏙, 나머지는 파르르
+                        switch (Art.Kind)
+                        {
+                            case CharKind.Pikachu: L.Sprite = Art.Angry; L.Left = false; L.Angle = (float)(Math.Sin(StateT * 46) * 2.2 * k); break;
+                            case CharKind.Squirtle: L.Sprite = Art.Shell; L.Left = false; L.Angle = (float)(Math.Sin(StateT * 34) * 3 * k); break;
+                            default: L.Angle = (float)(Math.Sin(StateT * 46) * 2.6 * k); break;
+                        }
                     Uni(ref L, 1 - squishAmp * .4 * k);
                     break;
                 }
@@ -98,7 +107,7 @@ namespace Cachu
                 case PetState.Sleep: SleepLook(ref L, animT); break;
                 case PetState.Waking:
                     // 깨어나며 한 번 크게 기지개(균일 확대 + 발끝 회전) 후 눈을 뜬다.
-                    if (StateT < .3) { L.Sprite = Art.Sleep; Uni(ref L, 1 + .03 * Math.Sin(Math.PI * StateT / .3)); }
+                    if (StateT < .3) { L.Sprite = Art.Sleep; Uni(ref L, 1 + .03 * Math.Sin(Math.PI * StateT / .3)); if (Art.Kind != CharKind.Pikachu) L.Decor |= Decor.Sleepy; }
                     else if (StateT < .85)
                     {
                         // 일어나 하품하며 기지개(놀란 입 = 하품), 눈은 아직 감김
@@ -140,26 +149,7 @@ namespace Cachu
                     L.HopY = (float)(Math.Sin(StateT * 40) * .4 * S); L.Decor |= Decor.Tears; L.DecorPhase = (float)StateT;
                     Uni(ref L, 1 + Math.Sin(StateT * 11) * .012 - (StateT < .18 ? .06 * Math.Sin(StateT / .18 * Math.PI) : 0));
                     break;
-                case PetState.Thunder:
-                {
-                    // 볼에 전기를 모으며 파르르 떨다가(웅크림) 번쩍! 하고 방출, 잠시 번쩍인 뒤 잦아든다.
-                    double t = StateT; L.Sprite = Art.Angry; L.Left = false;
-                    L.Decor |= Decor.Thunder; L.DecorPhase = (float)t;
-                    if (t < ThunderCharge)
-                    {
-                        double k = t / ThunderCharge;
-                        Uni(ref L, 1 - .07 * k); L.Angle = (float)(Math.Sin(t * 47) * 1.6 * k);
-                        lookJitterX = Math.Sin(t * 71) * (.3 + 1.2 * k) * S;
-                    }
-                    else
-                    {
-                        double u = t - ThunderCharge, pulse = Math.Exp(-u * 4.5), level = ThunderLevel((float)t);
-                        Uni(ref L, 1 + .07 * pulse + .012 * Math.Sin(t * 53)); L.Angle = (float)(Math.Sin(t * 61) * 1.8 * level);
-                        lookJitterX = Math.Sin(t * 83) * 1.4 * level * S; L.HopY = (float)(-pulse * 3 * S);
-                        L.Flash = (float)Math.Min(1, pulse * .85 + (level >= 1 && (int)(t * 22) % 2 == 0 ? .5 : 0));
-                    }
-                    break;
-                }
+                case PetState.Skill: SkillLook(ref L); break;
                 case PetState.Hop:
                 {
                     // 웅크림 → 점프 → 착지 펄스. 늘이거나 누르지 않고 균일 확대와 기울기만.
@@ -175,9 +165,17 @@ namespace Cachu
                     break;
                 }
                 case PetState.Sliding:
+                    L.DecorPhase = (float)animT;
+                    if (Art.Kind == CharKind.Squirtle)
+                    {
+                        // 등딱지에 숨어 빙글빙글 돌며 미끄러진다. 뒤로 물을 뿜어 나아간다.
+                        L.Sprite = Art.Shell; L.Px = 0; L.Py = -Art.Shell.H / 2f; L.Angle = (float)((Dir * animT * 760) % 360);
+                        L.HopY = (float)(Math.Sin(animT * 20) * .5 * S); L.Decor |= Decor.Jet;
+                        break;
+                    }
                     L.Sprite = Art.Slide; L.HopY = (float)(Math.Sin(animT * 20) * .6 * S);
                     L.Angle = (float)(-Dir * Math.Sin(animT * 9) * 2.5);
-                    L.Decor |= Decor.Speed; L.DecorPhase = (float)animT;
+                    L.Decor |= Decor.Speed;
                     break;
                 case PetState.Wall: case PetState.WindowClimb:
                 {
@@ -216,6 +214,7 @@ namespace Cachu
             }
             L.Bubble = PersistentBubble(hourlyBubble, Bubble);
             CompanionLook(ref L, now);
+            CharacterLook(ref L, now);
             bool calm = State == PetState.Walk || State == PetState.Pause || (State == PetState.Resting && restPose != RestPose.Sleep) || State == PetState.WaitHome || State == PetState.Gather || State == PetState.Cheer;
             if (calm && (L.Decor & (Decor.Tears | Decor.Sleepy | Decor.Spiral)) == 0 && Blinking(now)) L.Decor |= Decor.Blink;
             return L;
@@ -318,7 +317,19 @@ namespace Cachu
                 float px = L.Sprite.HasGrip ? L.Sprite.GripP.X - w / 2 : 0, rad = w * .6f;
                 l = Math.Min(l, px - rad); r = Math.Max(r, px + rad); t = Math.Min(t, -h - rotorH - 4 * s);
             }
-            if ((L.Decor & Decor.Thunder) != 0) { l = Math.Min(l, -w * 1.6f); r = Math.Max(r, w * 1.6f); t = Math.Min(t, -h * 2.15f); }
+            if ((L.Decor & Decor.Skill) != 0)
+            {
+                float ex = L.Sprite.Kind == CharKind.Pikachu ? 1.6f : L.Sprite.Kind == CharKind.Bulbasaur ? 1.8f : 1.95f;
+                float ey = L.Sprite.Kind == CharKind.Pikachu ? 2.15f : L.Sprite.Kind == CharKind.Bulbasaur ? 1.95f : 1.3f;
+                l = Math.Min(l, -w * ex); r = Math.Max(r, w * ex); t = Math.Min(t, -h * ey);
+            }
+            if ((L.Decor & Decor.Flame) != 0 && L.Sprite.HasTail)
+            {
+                PointF a = Anc(L.Sprite, L.Sprite.TailP, L.Left, w, h); float fu = h / 62f;
+                l = Math.Min(l, a.X - 16 * fu); r = Math.Max(r, a.X + 16 * fu); t = Math.Min(t, a.Y - (32 * L.Flame + 14) * fu);
+            }
+            if ((L.Decor & Decor.Sun) != 0) { l = Math.Min(l, -w * .9f); r = Math.Max(r, w * .9f); t = Math.Min(t, -h * 1.5f); }
+            if ((L.Decor & Decor.Jet) != 0) { l = Math.Min(l, -w * 1.3f); r = Math.Max(r, w * 1.3f); }
             if ((L.Decor & Decor.Dots) != 0) { r = Math.Max(r, w * .6f); t = Math.Min(t, -h - 14 * s); }
             if ((L.Decor & Decor.Stars) != 0) { l = Math.Min(l, -w * .45f); r = Math.Max(r, w * .45f); t = Math.Min(t, -h - 14 * s); }
             if ((L.Decor & Decor.Flower) != 0) { r = Math.Max(r, w * .38f + 20 * s); t = Math.Min(t, -h * .47f - 16 * s); }
@@ -383,7 +394,7 @@ namespace Cachu
                 CharacterArt.Quality(g);
                 var full = new Matrix(); full.Translate(origin.X, origin.Y); full.Multiply(matrix);
                 g.Transform = full;
-                if ((L.Decor & Decor.Thunder) != 0) { DrawThunderGlow(g, w, h, L.DecorPhase); DrawThunder(g, L, sprite, w, h, scale, L.DecorPhase, false); }
+                if ((L.Decor & (Decor.Skill | Decor.Sun | Decor.Jet)) != 0) DrawBackDecor(g, L, sprite, w, h, scale);
                 if (L.Sx == 1f && L.Sy == 1f && L.Angle == 0f)
                 {
                     g.ResetTransform();
@@ -540,7 +551,7 @@ namespace Cachu
                         }
                 }
                 if ((L.Decor & Decor.Rotor) != 0) DrawRotor(g, sp, w, h, s, rotorH, t);
-                if ((L.Decor & Decor.Thunder) != 0) DrawThunder(g, L, sp, w, h, s, t, true);
+                DrawFrontDecor(g, L, sp, w, h, s);
                 if ((L.Decor & Decor.Dots) != 0) DrawDots(g, w, h, s, t);
                 if ((L.Decor & Decor.Tears) != 0 && sp.HasEyes) DrawTears(g, EyesIn(sp, L.Left, w, h), s, t, sp.EyeRad);
                 if ((L.Decor & Decor.Spiral) != 0) foreach (PointF e in EyesIn(sp, L.Left, w, h)) DrawSpiral(g, e, s, ink, sp.EyeRad, t);
@@ -586,9 +597,10 @@ namespace Cachu
                 using (var shaft = new Pen(Color.FromArgb(158, 158, 170), 2f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round })
                 { g.DrawLine(shaftOutline, px, hubY, px, gy + 8 * s); g.DrawLine(shaft, px, hubY, px, gy + 8 * s); }
                 // 손잡이(갈색): 쥔 손 아래로 삐져나온 부분이 우산 손잡이처럼 보인다
-                using (var handleOutline = new Pen(Color.FromArgb(70, 44, 30), 4.6f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-                using (var handle = new Pen(Color.FromArgb(176, 112, 64), 3f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-                { g.DrawLine(handleOutline, px, gy - 1 * s, px, gy + 8 * s); g.DrawLine(handle, px, gy - 1 * s, px, gy + 8 * s); }
+                if (sp.Kind != CharKind.Bulbasaur)
+                    using (var handleOutline = new Pen(Color.FromArgb(70, 44, 30), 4.6f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                    using (var handle = new Pen(Color.FromArgb(176, 112, 64), 3f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                    { g.DrawLine(handleOutline, px, gy - 1 * s, px, gy + 8 * s); g.DrawLine(handle, px, gy - 1 * s, px, gy + 8 * s); }
                 // 위에서 본 빠른 날개: 길이가 |cos|로 깜빡이며 도는 것처럼 보인다(최소 12%).
                 float spread = (float)Math.Max(.12, Math.Abs(Math.Cos(t * 38)));
                 using (var disc = new SolidBrush(Color.FromArgb(40, 255, 236, 160)))
@@ -599,29 +611,34 @@ namespace Cachu
                     { g.DrawLine(outline, px, hubY, px + i * radius * spread, hubY); g.DrawLine(blade, px, hubY, px + i * radius * spread, hubY); }
                 using (var hub = new SolidBrush(Color.FromArgb(165, 165, 176))) { g.FillEllipse(hub, px - 3 * s, hubY - 3 * s, 6 * s, 6 * s); g.DrawEllipse(edge, px - 3 * s, hubY - 3 * s, 6 * s, 6 * s); }
                 // 자루를 움켜쥔 손: 털색 주먹이 자루 위에 얹힌다
-                var fist = new RectangleF(px - 3.6f * s, gy - 3.4f * s, 7.2f * s, 6.4f * s);
-                using (var fur = new SolidBrush(Color.FromArgb(242, 214, 100)))
-                using (var line = new Pen(Color.FromArgb(150, 98, 40), 1.2f * s))
-                { g.FillEllipse(fur, fist); g.DrawEllipse(line, fist); g.DrawLine(line, px - 3 * s, gy - .2f * s, px + 3 * s, gy - .2f * s); }
+                if (sp.Kind == CharKind.Bulbasaur) DrawVineGrip(g, sp, w, h, h / 62f, px, gy, t);   // 손이 없으니 덩굴로 자루를 감아 쥔다
+                else
+                {
+                    var fist = new RectangleF(px - 3.6f * s, gy - 3.4f * s, 7.2f * s, 6.4f * s);
+                    Color skinColor = sp.Kind == CharKind.Charmander ? Color.FromArgb(240, 124, 52) : sp.Kind == CharKind.Squirtle ? Color.FromArgb(160, 216, 208) : Color.FromArgb(242, 214, 100);
+                    using (var fur = new SolidBrush(skinColor))
+                    using (var line = new Pen(Color.FromArgb(150, 98, 40), 1.2f * s))
+                    { g.FillEllipse(fur, fist); g.DrawEllipse(line, fist); g.DrawLine(line, px - 3 * s, gy - .2f * s, px + 3 * s, gy - .2f * s); }
+                }
             }
         }
 
         // ───────── 번개 방출 ─────────
-        internal const float ThunderCharge = .75f, ThunderEnd = 2.7f;
+        internal const float SkillCharge = .75f, SkillEnd = 2.7f;
 
         /// <summary>번개의 세기: 모으는 동안 서서히 커지고, 방출 중엔 최대, 끝나갈 때 잦아든다.</summary>
-        internal static float ThunderLevel(float t)
+        internal static float SkillLevel(float t)
         {
-            if (t < ThunderCharge) return .2f + .35f * (t / ThunderCharge);
-            if (t < ThunderEnd - .55f) return 1f;
-            return Math.Max(0f, 1f - (t - (ThunderEnd - .55f)) / .55f);
+            if (t < SkillCharge) return .2f + .35f * (t / SkillCharge);
+            if (t < SkillEnd - .55f) return 1f;
+            return Math.Max(0f, 1f - (t - (SkillEnd - .55f)) / .55f);
         }
 
         /// <summary>몸 뒤에 번지는 노란 빛무리.</summary>
         private static void DrawThunderGlow(Graphics g, float w, float h, float t)
         {
-            float level = ThunderLevel(t), r = w * (.62f + .78f * level), cy = -h * .5f;
-            float flick = t < ThunderCharge ? 1f : 1f - .18f * (float)((int)(t * 22) % 2);
+            float level = SkillLevel(t), r = w * (.62f + .78f * level), cy = -h * .5f;
+            float flick = t < SkillCharge ? 1f : 1f - .18f * (float)((int)(t * 22) % 2);
             using (var path = new GraphicsPath())
             {
                 path.AddEllipse(-r, cy - r * .95f, r * 2, r * 1.9f);
@@ -664,10 +681,10 @@ namespace Cachu
         /// <summary>front=true: 모으는 동안 볼에서 튀는 불꽃(몸 앞) / false: 방출하는 큰 번개(몸 뒤에서 뻗어 나옴).</summary>
         private static void DrawThunder(Graphics g, Look L, Sprite sp, float w, float h, float s, float t, bool front)
         {
-            float level = ThunderLevel(t);
-            if (level <= 0 || front != (t < ThunderCharge)) return;
+            float level = SkillLevel(t);
+            if (level <= 0 || front != (t < SkillCharge)) return;
             var rnd = new Random((int)(t * 18) * 7919 + 13);
-            if (t < ThunderCharge)
+            if (t < SkillCharge)
             {
                 // 모으는 중: 양 볼에서 작은 전기가 파직파직
                 PointF[] e = EyesIn(sp, L.Left, w, h);
